@@ -6,14 +6,14 @@ pub struct Order {
     pub size: Decimal,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Side {
     vec: Vec<Order>,
     cap: usize,
     rev: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Book {
     pub bids: Side,
     pub asks: Side,

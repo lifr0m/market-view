@@ -3,7 +3,7 @@ mod info;
 pub mod pairs;
 mod snapshot;
 
-use crate::{Book, Order, Pair, TokenBucket};
+use crate::{Book, HashMapChunks, Order, Pair, TokenBucket};
 use backon::Retryable;
 use rust_decimal::Decimal;
 use serde::Deserialize;
@@ -14,7 +14,7 @@ use std::time::Duration;
 pub const BOOK_SIZE: usize = 100;
 
 /// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#websocket-limits
-const STREAMS_PER_CONNECTION: u64 = 128;
+const STREAMS_PER_CONNECTION: usize = 128;
 const RECONNECT_DELAY: Duration = Duration::from_secs(1);
 
 #[derive(Debug, Deserialize)]
@@ -48,17 +48,7 @@ pub async fn run(books: HashMap<Pair, Arc<Mutex<Book>>>) {
         .retry(backon::ExponentialBuilder::default())
         .await.unwrap();
 
-    let mut counter = 0_u64;
-    let mut conn_books = HashMap::new();
-    for (pair, book) in books {
-        conn_books.insert(pair, book);
-        counter += 1;
-        if counter >= STREAMS_PER_CONNECTION {
-            tokio::spawn(run_connection(conn_books, Arc::clone(&r_tb), Arc::clone(&w_tb)));
-            conn_books = HashMap::new();
-        }
-    }
-    if counter > 0 {
-        tokio::spawn(run_connection(conn_books, Arc::clone(&r_tb), Arc::clone(&w_tb)));
+    for books in HashMapChunks::new(books, STREAMS_PER_CONNECTION) {
+        tokio::spawn(run_connection(books, Arc::clone(&r_tb), Arc::clone(&w_tb)));
     }
 }

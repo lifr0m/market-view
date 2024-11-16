@@ -13,7 +13,7 @@ http = "1.1.0"
 reqwest = { version = "0.12.9", features = [
     "rustls-tls-native-roots", "cookies", "zstd", "brotli", "gzip", "json", "stream", "socks", "hickory-dns"
 ] }
-backon = { git = "https://github.com/Xuanwo/backon.git" }
 tokio-websockets = { version = "0.10.1", features = [
     "simd", "client", "rustls-platform-verifier", "rustls-tls12", "aws_lc_rs", "rand"
 ] }
+backon = { git = "https://github.com/Xuanwo/backon.git" }

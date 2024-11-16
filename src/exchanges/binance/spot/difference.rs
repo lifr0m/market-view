@@ -11,6 +11,8 @@ use tokio::sync::mpsc;
 
 const MAX_LATENCY: Duration = Duration::from_secs(5);
 const MAX_LATENCY_ERROR: Duration = Duration::from_millis(100);
+/// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#diff-depth-stream
+const UPDATE_SPEED: &str = "100ms";
 
 #[derive(Debug, Deserialize)]
 #[allow(non_snake_case)]
@@ -45,6 +47,7 @@ fn process_event(
 
 fn ensure_latency(pair: &Pair, event: &EventPayload) {
     let event_time = UNIX_EPOCH + Duration::from_millis(event.E);
+    
     match event_time.elapsed() {
         Ok(latency) => if latency > MAX_LATENCY {
             eprintln!("[binance] [spot] [{pair}]: high latency - {latency:?}");
@@ -92,7 +95,7 @@ async fn run_pair(
 
         loop {
             let event = rx.recv().await.unwrap();
-
+            
             if event.u <= snapshot.lastUpdateId {
                 continue;
             }
@@ -131,6 +134,7 @@ async fn run_pair(
 }
 
 /// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams
+/// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#diff-depth-stream
 pub async fn run_connection(
     books: &HashMap<Pair, Arc<Mutex<Book>>>,
     r_tb: &Arc<TokenBucket>,
@@ -139,7 +143,7 @@ pub async fn run_connection(
     let uri = http::Uri::from_str(&format!(
         "wss://data-stream.binance.vision/stream?streams={}",
         books.keys()
-            .map(|p| format!("{}@depth@100ms", p.fused()))
+            .map(|p| format!("{}@depth@{UPDATE_SPEED}", p.fused()))
             .collect::<Vec<String>>()
             .join("/")
     )).unwrap();
