@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
-// TODO: Test it.
-
 pub struct HashMapChunks<K, V> {
     iter: std::collections::hash_map::IntoIter<K, V>,
     chunk_size: usize,

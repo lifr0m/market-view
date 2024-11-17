@@ -3,19 +3,23 @@ mod info;
 pub mod pairs;
 mod snapshot;
 
-use crate::{Book, HashMapChunks, Order, Pair, TokenBucket};
+use crate::{Book, HashMapChunks, LatencyMeter, Order, Pair, TokenBucket};
 use backon::Retryable;
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use tokio::sync::mpsc;
 
 pub const BOOK_SIZE: usize = 100;
 
 /// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#websocket-limits
 const STREAMS_PER_CONNECTION: usize = 128;
+/// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#websocket-limits
 const RECONNECT_DELAY: Duration = Duration::from_secs(1);
+
+const LOG_PREFIX: &str = "[binance] [spot]";
 
 #[derive(Debug, Deserialize)]
 struct Update(Decimal, Decimal);
@@ -35,9 +39,12 @@ async fn run_connection(
     w_tb: Arc<TokenBucket>,
 ) {
     loop {
-        match difference::run_connection(&books, &r_tb, &w_tb).await {
-            Ok(()) => println!("[binance] [spot]: restarting"),
-            Err(err) => eprintln!("[binance] [spot]: {err:?}"),
+        let (lat_tx, lat_rx) = mpsc::unbounded_channel();
+        let _lat_meter = LatencyMeter::new(String::from(LOG_PREFIX), difference::LATENCY_CHECK_INTERVAL, lat_rx);
+        
+        match difference::run_connection(&books, &r_tb, &w_tb, &lat_tx).await {
+            Ok(()) => println!("{LOG_PREFIX}: restarting"),
+            Err(err) => eprintln!("{LOG_PREFIX}: {err:?}"),
         };
         tokio::time::sleep(RECONNECT_DELAY).await;
     }

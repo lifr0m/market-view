@@ -1,12 +1,14 @@
 mod book;
 mod exchanges;
 mod hashmap_chunks;
+mod latency_meter;
 mod pair;
 mod token_bucket;
 
 use backon::Retryable;
 use book::{Book, Order};
 use hashmap_chunks::HashMapChunks;
+use latency_meter::LatencyMeter;
 use pair::Pair;
 use std::collections::HashMap;
 use std::future::Future;

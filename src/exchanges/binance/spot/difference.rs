@@ -1,4 +1,4 @@
-use super::{snapshot::get_snapshot, Update};
+use super::{snapshot::get_snapshot, Update, LOG_PREFIX};
 use crate::{Book, Order, Pair, TokenBucket};
 use backon::Retryable;
 use futures::prelude::*;
@@ -13,6 +13,7 @@ use tokio::sync::mpsc;
 const UPDATE_SPEED: &str = "1000ms";
 
 const MAX_LATENCY: Duration = Duration::from_secs(5);
+pub const LATENCY_CHECK_INTERVAL: Duration = Duration::from_secs(1);
 const MAX_LATENCY_ERROR: Duration = Duration::from_millis(100);
 
 #[derive(Debug, Deserialize)]
@@ -32,10 +33,20 @@ struct EventPayload {
     a: Vec<Update>,
 }
 
-fn apply_event(
-    event: EventPayload,
-    book: &Arc<Mutex<Book>>,
-) {
+fn check_latency(pair: &Pair, event: &EventPayload, tx: &mpsc::UnboundedSender<Duration>) {
+    let event_time = UNIX_EPOCH + Duration::from_millis(event.E);
+
+    match event_time.elapsed() {
+        Ok(latency) => if latency > MAX_LATENCY {
+            tx.send(latency).unwrap();
+        }
+        Err(err) => if err.duration() > MAX_LATENCY_ERROR {
+            eprintln!("{LOG_PREFIX} [{pair}]: latency error - {:?}", err.duration());
+        }
+    }
+}
+
+fn apply_event(book: &Arc<Mutex<Book>>, event: EventPayload) {
     let mut book = book.lock().unwrap();
 
     for update in event.b {
@@ -46,23 +57,10 @@ fn apply_event(
     }
 }
 
-fn ensure_latency(pair: &Pair, event: &EventPayload) {
-    let event_time = UNIX_EPOCH + Duration::from_millis(event.E);
-
-    match event_time.elapsed() {
-        Ok(latency) => if latency > MAX_LATENCY {
-            eprintln!("[binance] [spot] [{pair}]: high latency - {latency:?}");
-        }
-        Err(err) => if err.duration() > MAX_LATENCY_ERROR {
-            eprintln!("[binance] [spot] [{pair}]: latency error - {:?}", err.duration());
-        }
-    }
-}
-
 /// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#how-to-manage-a-local-order-book-correctly
-/// 
+///
 /// ### Snapshot and Event Flow
-/// 
+///
 /// ```text
 ///    U-------u
 ///    | Event |
@@ -92,10 +90,14 @@ async fn run_pair(
     mut rx: mpsc::UnboundedReceiver<EventPayload>,
     r_tb: Arc<TokenBucket>,
     w_tb: Arc<TokenBucket>,
+    lat_tx: mpsc::UnboundedSender<Duration>,
 ) {
-    // Wait until first event appears in case websocket server 
+    // Wait until first event appears in case websocket server
     // will start sending events too late (later than we get snapshot).
     while rx.is_empty() {
+        if rx.is_closed() {
+            return;
+        }
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
 
@@ -123,25 +125,28 @@ async fn run_pair(
         let mut prev_u: u64;
 
         loop {
-            let event = rx.recv().await.unwrap();
-            
-            if event.u <= snapshot.lastUpdateId {
-                // Snapshot covers this event.
-                continue;
-            }
-            if event.U > snapshot.lastUpdateId + 1 {
-                // We missed some event.
-                eprintln!(
-                    "[binance] [spot] [{pair}]: U ({}) > lastUpdateId ({}) + 1",
-                    event.U, snapshot.lastUpdateId
-                );
-                continue 'from_snapshot;
-            }
-            prev_u = event.u;
+            match rx.recv().await {
+                Some(event) => {
+                    if event.u <= snapshot.lastUpdateId {
+                        // Snapshot covers this event.
+                        continue;
+                    }
+                    if event.U > snapshot.lastUpdateId + 1 {
+                        // We missed some event.
+                        eprintln!(
+                            "{LOG_PREFIX} [{pair}]: U ({}) > lastUpdateId ({}) + 1",
+                            event.U, snapshot.lastUpdateId
+                        );
+                        continue 'from_snapshot;
+                    }
+                    prev_u = event.u;
 
-            ensure_latency(&pair, &event);
-            apply_event(event, &book);
-            break;
+                    check_latency(&pair, &event, &lat_tx);
+                    apply_event(&book, event);
+                    break;
+                }
+                None => break 'from_snapshot
+            }
         }
 
         loop {
@@ -149,16 +154,13 @@ async fn run_pair(
                 Some(event) => {
                     if event.U != prev_u + 1 {
                         // We missed some event.
-                        eprintln!(
-                            "[binance] [spot] [{pair}]: U ({}) != prev_u ({prev_u}) + 1",
-                            event.U
-                        );
+                        eprintln!("{LOG_PREFIX} [{pair}]: U ({}) != prev_u ({prev_u}) + 1", event.U);
                         continue 'from_snapshot;
                     }
                     prev_u = event.u;
 
-                    ensure_latency(&pair, &event);
-                    apply_event(event, &book);
+                    check_latency(&pair, &event, &lat_tx);
+                    apply_event(&book, event);
                 }
                 None => break 'from_snapshot
             }
@@ -172,6 +174,7 @@ pub async fn run_connection(
     books: &HashMap<Pair, Arc<Mutex<Book>>>,
     r_tb: &Arc<TokenBucket>,
     w_tb: &Arc<TokenBucket>,
+    lat_tx: &mpsc::UnboundedSender<Duration>,
 ) -> Result<(), tokio_websockets::Error> {
     let uri = http::Uri::from_str(&format!(
         "wss://data-stream.binance.vision/stream?streams={}",
@@ -189,11 +192,12 @@ pub async fn run_connection(
             p.fused_upper(),
             {
                 let (tx, rx) = mpsc::unbounded_channel();
-                tasks.spawn(run_pair(p.clone(), Arc::clone(b), rx, Arc::clone(r_tb), Arc::clone(w_tb)));
+                tasks.spawn(run_pair(p.clone(), Arc::clone(b), rx, Arc::clone(r_tb), Arc::clone(w_tb), lat_tx.clone()));
                 tx
             }
         ))
     );
+
     while let Some(msg) = client.next().await {
         let msg = msg?;
         let body = msg.as_payload();
