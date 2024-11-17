@@ -101,8 +101,10 @@ async fn run_pair(
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
 
+    let book_cap = book.lock().unwrap().capacity();
+    
     'from_snapshot: loop {
-        let snapshot = (|| get_snapshot(&pair, &r_tb, &w_tb))
+        let snapshot = (|| get_snapshot(&pair, book_cap, &r_tb, &w_tb))
             .retry(backon::ExponentialBuilder::default())
             .await.unwrap();
 

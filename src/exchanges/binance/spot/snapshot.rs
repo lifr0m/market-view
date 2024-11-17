@@ -1,4 +1,4 @@
-use super::{Update, BOOK_SIZE};
+use super::Update;
 use crate::{Pair, TokenBucket};
 use serde::Deserialize;
 use serde_json::json;
@@ -15,13 +15,14 @@ pub struct Snapshot {
 /// https://developers.binance.com/docs/binance-spot-api-docs/rest-api/public-api-endpoints#order-book
 pub async fn get_snapshot(
     pair: &Pair,
+    size: usize,
     r_tb: &Arc<TokenBucket>,
     w_tb: &Arc<TokenBucket>,
 ) -> reqwest::Result<Snapshot> {
     let weight =
-        if BOOK_SIZE <= 100 { 5 }
-        else if BOOK_SIZE <= 500 { 25 }
-        else if BOOK_SIZE <= 1000 { 50 }
+        if size <= 100 { 5 }
+        else if size <= 500 { 25 }
+        else if size <= 1000 { 50 }
         else { 250 };
 
     r_tb.acquire(1).await;
@@ -31,7 +32,7 @@ pub async fn get_snapshot(
         .get("https://data-api.binance.vision/api/v3/depth")
         .query(&json!({
             "symbol": pair.fused_upper(),
-            "limit": BOOK_SIZE,
+            "limit": size,
         }))
         .send()
         .await?

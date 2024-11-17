@@ -30,32 +30,41 @@ enum Platform {
 
 type Place = (Exchange, Platform);
 
-async fn create_books<T, F>(
+async fn create_books<T, F, E>(
     enabled_places: &[Place],
-    book_sizes: &HashMap<Place, usize>,
+    book_caps: &HashMap<Place, usize>,
     pairs_getters: &HashMap<Place, T>,
-) -> HashMap<Place, HashMap<Pair, Arc<Mutex<Book>>>>
+) -> Result<HashMap<Place, HashMap<Pair, Arc<Mutex<Book>>>>, E>
 where
     T: Fn() -> F,
-    F: Future<Output = reqwest::Result<Vec<Pair>>>,
+    F: Future<Output = Result<Vec<Pair>, E>>,
 {
     let mut books = HashMap::with_capacity(enabled_places.len());
 
     for place in enabled_places {
         let pairs = (|| pairs_getters[place]())
             .retry(backon::ExponentialBuilder::default())
-            .await.unwrap();
+            .await?;
 
         let place_books = HashMap::from_iter(
             pairs.into_iter().map(|p| (
                 p,
-                Arc::new(Mutex::new(Book::new(book_sizes[place])))
+                Arc::new(Mutex::new(Book::new(book_caps[place])))
             ))
         );
         books.insert(place.clone(), place_books);
     }
 
-    books
+    Ok(books)
+}
+
+fn spawn(books: &HashMap<Place, HashMap<Pair, Arc<Mutex<Book>>>>) {
+    let spawners = HashMap::from([
+        ((Exchange::Binance, Platform::Spot), exchanges::binance::spot::spawn)
+    ]);
+    for (place, spawner) in &spawners {
+        tokio::spawn(spawner(books[place].clone()));
+    }
 }
 
 fn copy_books(
@@ -92,21 +101,18 @@ async fn main() {
     let enabled_places = [
         (Exchange::Binance, Platform::Spot),
     ];
-
-    let book_sizes = HashMap::from([
-        ((Exchange::Binance, Platform::Spot), exchanges::binance::spot::BOOK_SIZE)
+    let book_caps = HashMap::from([
+        ((Exchange::Binance, Platform::Spot), 100)
     ]);
     let pairs_getters = HashMap::from([
         ((Exchange::Binance, Platform::Spot), exchanges::binance::spot::pairs::get_pairs)
     ]);
-    let spawners = HashMap::from([
-        ((Exchange::Binance, Platform::Spot), exchanges::binance::spot::spawn)
-    ]);
-
-    let books = create_books(&enabled_places, &book_sizes, &pairs_getters).await;
-    for (place, spawner) in &spawners {
-        tokio::spawn(spawner(books[place].clone()));
-    }
+    
+    let books = create_books(
+        &enabled_places, &book_caps, &pairs_getters,
+    ).await.unwrap();
+    
+    spawn(&books);
 
     loop {
         do_some_calculations(copy_books(&books));

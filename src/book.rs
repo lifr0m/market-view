@@ -84,4 +84,8 @@ impl Book {
             asks: Side::new(cap, false),
         }
     }
+    
+    pub fn capacity(&self) -> usize {
+        self.bids.cap
+    }
 }

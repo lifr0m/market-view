@@ -12,8 +12,6 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc;
 
-pub const BOOK_SIZE: usize = 100;
-
 /// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#websocket-limits
 const STREAMS_PER_CONNECTION: usize = 128;
 /// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#websocket-limits
