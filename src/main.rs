@@ -99,13 +99,13 @@ async fn main() {
     let pairs_getters = HashMap::from([
         ((Exchange::Binance, Platform::Spot), exchanges::binance::spot::pairs::get_pairs)
     ]);
-    let runners = HashMap::from([
-        ((Exchange::Binance, Platform::Spot), exchanges::binance::spot::run)
+    let spawners = HashMap::from([
+        ((Exchange::Binance, Platform::Spot), exchanges::binance::spot::spawn)
     ]);
 
     let books = create_books(&enabled_places, &book_sizes, &pairs_getters).await;
-    for (place, runner) in &runners {
-        tokio::spawn(runner(books[place].clone()));
+    for (place, spawner) in &spawners {
+        tokio::spawn(spawner(books[place].clone()));
     }
     
     loop {

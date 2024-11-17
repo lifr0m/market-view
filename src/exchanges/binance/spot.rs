@@ -33,15 +33,13 @@ impl From<Update> for Order {
     }
 }
 
-async fn run_connection(
+async fn loop_connection(
     books: HashMap<Pair, Arc<Mutex<Book>>>,
     r_tb: Arc<TokenBucket>,
     w_tb: Arc<TokenBucket>,
+    lat_tx: mpsc::UnboundedSender<Duration>,
 ) {
     loop {
-        let (lat_tx, lat_rx) = mpsc::unbounded_channel();
-        let _lat_meter = LatencyMeter::new(String::from(LOG_PREFIX), difference::LATENCY_CHECK_INTERVAL, lat_rx);
-        
         match difference::run_connection(&books, &r_tb, &w_tb, &lat_tx).await {
             Ok(()) => println!("{LOG_PREFIX}: restarting"),
             Err(err) => eprintln!("{LOG_PREFIX}: {err:?}"),
@@ -50,12 +48,15 @@ async fn run_connection(
     }
 }
 
-pub async fn run(books: HashMap<Pair, Arc<Mutex<Book>>>) {
+pub async fn spawn(books: HashMap<Pair, Arc<Mutex<Book>>>) {
     let (r_tb, w_tb) = info::get_rate_limits_tbs
         .retry(backon::ExponentialBuilder::default())
         .await.unwrap();
 
+    let (lat_tx, lat_rx) = mpsc::unbounded_channel();
+    let _lat_meter = LatencyMeter::new(String::from(LOG_PREFIX), difference::LATENCY_CHECK_INTERVAL, lat_rx);
+    
     for books in HashMapChunks::new(books, STREAMS_PER_CONNECTION) {
-        tokio::spawn(run_connection(books, Arc::clone(&r_tb), Arc::clone(&w_tb)));
+        tokio::spawn(loop_connection(books, Arc::clone(&r_tb), Arc::clone(&w_tb), lat_tx.clone()));
     }
 }
