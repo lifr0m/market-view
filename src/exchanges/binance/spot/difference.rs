@@ -102,7 +102,7 @@ async fn run_pair(
     }
 
     let book_cap = book.lock().unwrap().capacity();
-    
+
     'from_snapshot: loop {
         let snapshot = (|| get_snapshot(&pair, book_cap, &r_tb, &w_tb))
             .retry(backon::ExponentialBuilder::default())

@@ -107,11 +107,11 @@ async fn main() {
     let pairs_getters = HashMap::from([
         ((Exchange::Binance, Platform::Spot), exchanges::binance::spot::pairs::get_pairs)
     ]);
-    
+
     let books = create_books(
         &enabled_places, &book_caps, &pairs_getters,
     ).await.unwrap();
-    
+
     spawn(&books);
 
     loop {
