@@ -9,10 +9,11 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::mpsc;
 
+/// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#diff-depth-stream
+const UPDATE_SPEED: &str = "1000ms";
+
 const MAX_LATENCY: Duration = Duration::from_secs(5);
 const MAX_LATENCY_ERROR: Duration = Duration::from_millis(100);
-/// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#diff-depth-stream
-const UPDATE_SPEED: &str = "100ms";
 
 #[derive(Debug, Deserialize)]
 #[allow(non_snake_case)]

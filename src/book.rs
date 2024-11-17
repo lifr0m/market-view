@@ -61,7 +61,7 @@ impl Side {
                             self.vec.pop();
                         }
                         // Insert new order.
-                        self.vec.insert(idx, order.clone());
+                        self.vec.insert(idx, order);
                     }
                 }
             }
