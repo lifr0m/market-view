@@ -59,6 +59,32 @@ fn ensure_latency(pair: &Pair, event: &EventPayload) {
 }
 
 /// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#how-to-manage-a-local-order-book-correctly
+/// 
+/// ### Snapshot and Event Flow
+/// 
+/// ```text
+///    U-------u
+///    | Event |
+///    +-------+
+///            U-------u
+///            | Event |
+///            +-------+
+///              U--------------u
+///              |    Event     |
+///              +--------------+
+///                U----------u
+///                | Snapshot |
+///                +----------+
+///                   U-----u
+///                   |Event|
+///                   +-----+
+///                       U-------u
+///                       | Event |
+///                       +-------+
+///                               U-------u
+///                               | Event |
+///                               +-------+
+/// ```
 async fn run_pair(
     pair: Pair,
     book: Arc<Mutex<Book>>,
