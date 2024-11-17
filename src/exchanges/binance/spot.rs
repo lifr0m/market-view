@@ -38,6 +38,7 @@ async fn loop_connection(
     r_tb: Arc<TokenBucket>,
     w_tb: Arc<TokenBucket>,
     lat_tx: mpsc::UnboundedSender<Duration>,
+    _lat_meter: Arc<LatencyMeter>,
 ) {
     loop {
         match difference::run_connection(&books, &r_tb, &w_tb, &lat_tx).await {
@@ -54,9 +55,13 @@ pub async fn spawn(books: HashMap<Pair, Arc<Mutex<Book>>>) {
         .await.unwrap();
 
     let (lat_tx, lat_rx) = mpsc::unbounded_channel();
-    let _lat_meter = LatencyMeter::new(String::from(LOG_PREFIX), difference::LATENCY_CHECK_INTERVAL, lat_rx);
+    let lat_meter = Arc::new(LatencyMeter::new(
+        String::from(LOG_PREFIX), difference::LATENCY_CHECK_INTERVAL, lat_rx,
+    ));
 
     for books in HashMapChunks::new(books, STREAMS_PER_CONNECTION) {
-        tokio::spawn(loop_connection(books, Arc::clone(&r_tb), Arc::clone(&w_tb), lat_tx.clone()));
+        tokio::spawn(loop_connection(
+            books, Arc::clone(&r_tb), Arc::clone(&w_tb), lat_tx.clone(), Arc::clone(&lat_meter),
+        ));
     }
 }

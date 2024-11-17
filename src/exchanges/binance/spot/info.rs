@@ -36,7 +36,7 @@ pub async fn get_rate_limits_tbs() -> reqwest::Result<(Arc<TokenBucket>, Arc<Tok
         (String::from("DAY"), Duration::from_secs(60 * 60 * 24)),
     ]);
 
-    let mut tbs = HashMap::<String, TokenBucket>::from_iter(
+    let mut tbs = HashMap::<_, _>::from_iter(
         exchange_info.rateLimits.into_iter().map(|rl| (
             rl.rateLimitType,
             TokenBucket::new(rl.limit, rl.intervalNum * intervals_map[&rl.interval])
