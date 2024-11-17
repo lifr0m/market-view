@@ -31,7 +31,7 @@ struct EventPayload {
     a: Vec<Update>,
 }
 
-fn process_event(
+fn apply_event(
     event: EventPayload,
     book: &Arc<Mutex<Book>>,
 ) {
@@ -47,7 +47,7 @@ fn process_event(
 
 fn ensure_latency(pair: &Pair, event: &EventPayload) {
     let event_time = UNIX_EPOCH + Duration::from_millis(event.E);
-    
+
     match event_time.elapsed() {
         Ok(latency) => if latency > MAX_LATENCY {
             eprintln!("[binance] [spot] [{pair}]: high latency - {latency:?}");
@@ -66,6 +66,8 @@ async fn run_pair(
     r_tb: Arc<TokenBucket>,
     w_tb: Arc<TokenBucket>,
 ) {
+    // Wait until first event appears in case websocket server 
+    // will start sending events too late (later than we get snapshot).
     while rx.is_empty() {
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
@@ -97,20 +99,21 @@ async fn run_pair(
             let event = rx.recv().await.unwrap();
             
             if event.u <= snapshot.lastUpdateId {
+                // Snapshot covers this event.
                 continue;
             }
-            if !(event.U <= snapshot.lastUpdateId + 1 && event.u > snapshot.lastUpdateId) {
+            if event.U > snapshot.lastUpdateId + 1 {
+                // We missed some event.
                 eprintln!(
-                    "[binance] [spot] [{pair}]: !(U ({}) <= lastUpdateId ({}) + 1 && \
-                    u ({}) >= lastUpdateId ({}) + 1)",
-                    event.U, snapshot.lastUpdateId, event.u, snapshot.lastUpdateId
+                    "[binance] [spot] [{pair}]: U ({}) > lastUpdateId ({}) + 1",
+                    event.U, snapshot.lastUpdateId
                 );
                 continue 'from_snapshot;
             }
             prev_u = event.u;
 
             ensure_latency(&pair, &event);
-            process_event(event, &book);
+            apply_event(event, &book);
             break;
         }
 
@@ -118,14 +121,17 @@ async fn run_pair(
             match rx.recv().await {
                 Some(event) => {
                     if event.U != prev_u + 1 {
-                        eprintln!("[binance] [spot] [{pair}]: U ({}) != prev_u ({prev_u}) + 1",
-                                  event.U);
+                        // We missed some event.
+                        eprintln!(
+                            "[binance] [spot] [{pair}]: U ({}) != prev_u ({prev_u}) + 1",
+                            event.U
+                        );
                         continue 'from_snapshot;
                     }
                     prev_u = event.u;
 
                     ensure_latency(&pair, &event);
-                    process_event(event, &book);
+                    apply_event(event, &book);
                 }
                 None => break 'from_snapshot
             }

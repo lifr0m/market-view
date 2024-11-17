@@ -14,6 +14,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use token_bucket::TokenBucket;
 
+const CALCULATION_INTERVAL: Duration = Duration::from_secs(1);
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum Exchange {
     Binance,
@@ -106,6 +108,6 @@ async fn main() {
     
     loop {
         do_some_calculations(copy_books(&books));
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        tokio::time::sleep(CALCULATION_INTERVAL).await;
     }
 }
