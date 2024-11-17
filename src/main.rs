@@ -107,7 +107,7 @@ async fn main() {
     for (place, spawner) in &spawners {
         tokio::spawn(spawner(books[place].clone()));
     }
-    
+
     loop {
         do_some_calculations(copy_books(&books));
         tokio::time::sleep(CALCULATION_INTERVAL).await;
