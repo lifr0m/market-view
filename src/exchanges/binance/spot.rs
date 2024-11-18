@@ -26,6 +26,7 @@ impl From<Update> for Order {
 }
 
 async fn loop_connection(
+    n: usize,
     config: SystemConfig,
     books: HashMap<Pair, Arc<Mutex<Book>>>,
     r_tb: Arc<TokenBucket>,
@@ -35,8 +36,8 @@ async fn loop_connection(
 ) {
     loop {
         match difference::run_connection(&config, &books, &r_tb, &w_tb, &lat_tx).await {
-            Ok(()) => println!("{}: restarting", config.log_prefix),
-            Err(err) => eprintln!("{}: {err:?}", config.log_prefix),
+            Ok(()) => println!("{} ({n}): restarting", config.log_prefix),
+            Err(err) => eprintln!("{} ({n}): {err:?}", config.log_prefix),
         };
         tokio::time::sleep(config.reconnect_delay).await;
     }
@@ -52,9 +53,9 @@ pub(crate) async fn spawn(config: SystemConfig, books: HashMap<Pair, Arc<Mutex<B
         config.log_prefix.clone(), config.latency_check_interval, lat_rx,
     ));
 
-    for books in HashMapChunks::new(books, config.streams_per_connection) {
+    for (i, books) in HashMapChunks::new(books, config.streams_per_connection).enumerate() {
         tokio::spawn(loop_connection(
-            config.clone(), books, Arc::clone(&r_tb), Arc::clone(&w_tb), lat_tx.clone(),
+            i + 1, config.clone(), books, Arc::clone(&r_tb), Arc::clone(&w_tb), lat_tx.clone(),
             Arc::clone(&lat_meter),
         ));
     }
