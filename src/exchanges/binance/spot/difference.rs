@@ -172,7 +172,7 @@ async fn run_pair(
     }
 }
 
-/// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams
+/// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams \
 /// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#diff-depth-stream
 pub(super) async fn run_connection(
     config: &SystemConfig,
