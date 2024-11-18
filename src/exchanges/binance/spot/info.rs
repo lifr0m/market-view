@@ -21,7 +21,7 @@ struct RateLimit {
 
 /// https://developers.binance.com/docs/binance-spot-api-docs/rest-api/limits
 /// https://developers.binance.com/docs/binance-spot-api-docs/rest-api/public-api-endpoints#exchange-information
-pub async fn get_rate_limits_tbs() -> reqwest::Result<(Arc<TokenBucket>, Arc<TokenBucket>)> {
+pub(super) async fn get_rate_limits_tbs() -> reqwest::Result<(Arc<TokenBucket>, Arc<TokenBucket>)> {
     let exchange_info = reqwest::Client::new()
         .get("https://data-api.binance.vision/api/v3/exchangeInfo")
         .send()

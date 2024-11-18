@@ -30,11 +30,11 @@ impl<const REV: bool> Side<REV> {
         &self.vec
     }
 
-    pub fn shot_update(&mut self, orders: Vec<Order>) {
+    pub(crate) fn shot_update(&mut self, orders: Vec<Order>) {
         self.vec = orders;
     }
 
-    pub fn diff_update(&mut self, order: Order) {
+    pub(crate) fn diff_update(&mut self, order: Order) {
         if order.size == Decimal::ZERO {
             // Remove existing order.
             if let Ok(idx) = self.search(&order) {
@@ -76,13 +76,13 @@ impl<const REV: bool> Side<REV> {
 }
 
 impl Book {
-    pub fn new(cap: usize) -> Self {
+    pub(crate) fn new(cap: usize) -> Self {
         Self {
             bids: Side::new(cap),
             asks: Side::new(cap),
         }
     }
-    
+
     pub fn capacity(&self) -> usize {
         self.bids.cap
     }

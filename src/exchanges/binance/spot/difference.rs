@@ -1,5 +1,5 @@
-use super::{snapshot::get_snapshot, Update, LOG_PREFIX};
-use crate::{Book, Order, Pair, TokenBucket};
+use super::{snapshot::get_snapshot, Update};
+use crate::{Book, Order, Pair, SystemConfig, TokenBucket};
 use backon::Retryable;
 use futures::prelude::*;
 use serde::Deserialize;
@@ -8,13 +8,6 @@ use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::sync::mpsc;
-
-/// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#diff-depth-stream
-const UPDATE_SPEED: &str = "1000ms";
-
-const MAX_LATENCY: Duration = Duration::from_secs(5);
-pub const LATENCY_CHECK_INTERVAL: Duration = Duration::from_secs(1);
-const MAX_LATENCY_ERROR: Duration = Duration::from_millis(100);
 
 #[derive(Debug, Deserialize)]
 #[allow(non_snake_case)]
@@ -33,15 +26,20 @@ struct EventPayload {
     a: Vec<Update>,
 }
 
-fn check_latency(pair: &Pair, event: &EventPayload, tx: &mpsc::UnboundedSender<Duration>) {
+fn check_latency(
+    config: &SystemConfig,
+    pair: &Pair,
+    event: &EventPayload,
+    tx: &mpsc::UnboundedSender<Duration>
+) {
     let event_time = UNIX_EPOCH + Duration::from_millis(event.E);
 
     match event_time.elapsed() {
-        Ok(latency) => if latency > MAX_LATENCY {
+        Ok(latency) => if latency > config.max_latency {
             tx.send(latency).unwrap();
         }
-        Err(err) => if err.duration() > MAX_LATENCY_ERROR {
-            eprintln!("{LOG_PREFIX} [{pair}]: latency error - {:?}", err.duration());
+        Err(err) => if err.duration() > config.max_latency_error {
+            eprintln!("{} [{pair}]: latency error - {:?}", config.log_prefix, err.duration());
         }
     }
 }
@@ -85,6 +83,7 @@ fn apply_event(book: &Arc<Mutex<Book>>, event: EventPayload) {
 ///                               +-------+
 /// ```
 async fn run_pair(
+    config: SystemConfig,
     pair: Pair,
     book: Arc<Mutex<Book>>,
     mut rx: mpsc::UnboundedReceiver<EventPayload>,
@@ -136,14 +135,14 @@ async fn run_pair(
                     if event.U > snapshot.lastUpdateId + 1 {
                         // We missed some event.
                         eprintln!(
-                            "{LOG_PREFIX} [{pair}]: U ({}) > lastUpdateId ({}) + 1",
-                            event.U, snapshot.lastUpdateId
+                            "{} [{pair}]: U ({}) > lastUpdateId ({}) + 1",
+                            config.log_prefix, event.U, snapshot.lastUpdateId
                         );
                         continue 'from_snapshot;
                     }
                     prev_u = event.u;
 
-                    check_latency(&pair, &event, &lat_tx);
+                    check_latency(&config, &pair, &event, &lat_tx);
                     apply_event(&book, event);
                     break;
                 }
@@ -156,12 +155,15 @@ async fn run_pair(
                 Some(event) => {
                     if event.U != prev_u + 1 {
                         // We missed some event.
-                        eprintln!("{LOG_PREFIX} [{pair}]: U ({}) != prev_u ({prev_u}) + 1", event.U);
+                        eprintln!(
+                            "{} [{pair}]: U ({}) != prev_u ({prev_u}) + 1",
+                            config.log_prefix, event.U
+                        );
                         continue 'from_snapshot;
                     }
                     prev_u = event.u;
 
-                    check_latency(&pair, &event, &lat_tx);
+                    check_latency(&config, &pair, &event, &lat_tx);
                     apply_event(&book, event);
                 }
                 None => break 'from_snapshot
@@ -172,7 +174,8 @@ async fn run_pair(
 
 /// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams
 /// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#diff-depth-stream
-pub async fn run_connection(
+pub(super) async fn run_connection(
+    config: &SystemConfig,
     books: &HashMap<Pair, Arc<Mutex<Book>>>,
     r_tb: &Arc<TokenBucket>,
     w_tb: &Arc<TokenBucket>,
@@ -181,7 +184,7 @@ pub async fn run_connection(
     let uri = http::Uri::from_str(&format!(
         "wss://data-stream.binance.vision/stream?streams={}",
         books.keys()
-            .map(|p| format!("{}@depth@{UPDATE_SPEED}", p.fused()))
+            .map(|p| format!("{}@depth@{}", p.fused(), config.update_speed))
             .collect::<Vec<String>>()
             .join("/")
     )).unwrap();
@@ -195,7 +198,8 @@ pub async fn run_connection(
             {
                 let (tx, rx) = mpsc::unbounded_channel();
                 tasks.spawn(run_pair(
-                    p.clone(), Arc::clone(b), rx, Arc::clone(r_tb), Arc::clone(w_tb), lat_tx.clone()
+                    config.clone(), p.clone(), Arc::clone(b), rx, Arc::clone(r_tb), Arc::clone(w_tb),
+                    lat_tx.clone()
                 ));
                 tx
             }

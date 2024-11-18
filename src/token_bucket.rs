@@ -2,13 +2,13 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Semaphore;
 
-pub struct TokenBucket {
+pub(crate) struct TokenBucket {
     sem: Arc<Semaphore>,
     jh: tokio::task::JoinHandle<()>,
 }
 
 impl TokenBucket {
-    pub fn new(cap: usize, rate: Duration) -> Self {
+    pub(crate) fn new(cap: usize, rate: Duration) -> Self {
         let sem = Arc::new(Semaphore::new(cap));
 
         let jh = tokio::spawn({
@@ -30,7 +30,7 @@ impl TokenBucket {
         Self { sem, jh }
     }
 
-    pub async fn acquire(&self, n: u32) {
+    pub(crate) async fn acquire(&self, n: u32) {
         let permit = self.sem.acquire_many(n).await.unwrap();
         permit.forget();
     }

@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
-pub struct HashMapChunks<K, V> {
+pub(crate) struct HashMapChunks<K, V> {
     iter: std::collections::hash_map::IntoIter<K, V>,
     chunk_size: usize,
 }
 
 impl<K, V> HashMapChunks<K, V> {
-    pub fn new(map: HashMap<K, V>, size: usize) -> Self {
+    pub(crate) fn new(map: HashMap<K, V>, size: usize) -> Self {
         Self { iter: map.into_iter(), chunk_size: size }
     }
 }

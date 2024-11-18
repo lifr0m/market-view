@@ -6,14 +6,14 @@ use std::sync::Arc;
 
 #[derive(Debug, Deserialize)]
 #[allow(non_snake_case)]
-pub struct Snapshot {
-    pub lastUpdateId: u64,
-    pub bids: Vec<Update>,
-    pub asks: Vec<Update>,
+pub(super) struct Snapshot {
+    pub(super) lastUpdateId: u64,
+    pub(super) bids: Vec<Update>,
+    pub(super) asks: Vec<Update>,
 }
 
 /// https://developers.binance.com/docs/binance-spot-api-docs/rest-api/public-api-endpoints#order-book
-pub async fn get_snapshot(
+pub(super) async fn get_snapshot(
     pair: &Pair,
     size: usize,
     r_tb: &Arc<TokenBucket>,

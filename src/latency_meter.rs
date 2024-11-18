@@ -2,13 +2,13 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc;
 
-pub struct LatencyMeter {
+pub(crate) struct LatencyMeter {
     recv_jh: tokio::task::JoinHandle<()>,
     check_jh: tokio::task::JoinHandle<()>,
 }
 
 impl LatencyMeter {
-    pub fn new(prefix: String, interval: Duration, mut rx: mpsc::UnboundedReceiver<Duration>) -> Self {
+    pub(crate) fn new(prefix: String, interval: Duration, mut rx: mpsc::UnboundedReceiver<Duration>) -> Self {
         let vec = Arc::new(Mutex::new(Vec::new()));
 
         let recv_jh = tokio::spawn({
