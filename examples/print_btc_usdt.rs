@@ -26,7 +26,7 @@ fn print_best_orders(books: HashMap<&Place, HashMap<&Pair, Book>>) {
 #[tokio::main]
 async fn main() {
     println!("You can check it here: https://www.binance.com/en/trade/BTC_USDT?type=spot");
-    
+
     let books = arbitrage::start(vec![
         arbitrage::Config::new(
             (Exchange::Binance, Platform::Spot),

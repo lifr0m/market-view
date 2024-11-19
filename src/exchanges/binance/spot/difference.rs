@@ -208,9 +208,9 @@ pub(super) async fn run_connection(
 
     while let Some(msg) = client.next().await {
         let msg = msg?;
-        let body = msg.as_payload();
-
-        if !msg.is_ping() {
+        
+        if msg.is_text() || msg.is_binary() {
+            let body = msg.as_payload();
             let event = serde_json::from_slice::<Event>(body).unwrap().data;
             txs[&event.s].send(event).unwrap();
         }
