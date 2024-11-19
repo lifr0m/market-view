@@ -21,22 +21,7 @@ pub(crate) struct SystemConfig {
 
 impl Config {
     pub fn new(place: Place, book_cap: usize, pairs: Vec<Pair>) -> Self {
-        let system = match place {
-            (Exchange::Binance, Platform::Spot) => {
-                SystemConfig {
-                    // https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#websocket-limits
-                    streams_per_connection: 128,
-                    // https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#websocket-limits
-                    reconnect_delay: Duration::from_secs(1),
-                    log_prefix: String::from("[binance] [spot]"),
-                    // https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#diff-depth-stream
-                    update_speed: String::from("1000ms"),
-                    max_latency: Duration::from_secs(5),
-                    latency_check_interval: Duration::from_secs(1),
-                    max_latency_error: Duration::from_millis(100),
-                }
-            }
-        };
+        let system = SystemConfig::new(&place);
         
         Self { place, book_cap, pairs, system }
     }
@@ -88,5 +73,26 @@ impl Config {
         self.system.max_latency_error = max_latency_error;
 
         self
+    }
+}
+
+impl SystemConfig {
+    fn new(place: &Place) -> Self {
+        match place {
+            (Exchange::Binance, Platform::Spot) => {
+                Self {
+                    // https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#websocket-limits
+                    streams_per_connection: 128,
+                    // https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#websocket-limits
+                    reconnect_delay: Duration::from_secs(1),
+                    log_prefix: String::from("[binance] [spot]"),
+                    // https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#diff-depth-stream
+                    update_speed: String::from("1000ms"),
+                    max_latency: Duration::from_secs(5),
+                    latency_check_interval: Duration::from_secs(1),
+                    max_latency_error: Duration::from_millis(100),
+                }
+            }
+        }
     }
 }
