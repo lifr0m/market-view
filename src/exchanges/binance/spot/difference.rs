@@ -191,13 +191,12 @@ pub(super) async fn run_connection(
     let (mut client, _) =
         tokio_websockets::ClientBuilder::from_uri(uri).connect().await?;
 
-    let mut tasks = tokio::task::JoinSet::new();
     let txs = HashMap::<_, _>::from_iter(
         books.iter().map(|(p, b)| (
             p.fused_upper(),
             {
                 let (tx, rx) = mpsc::unbounded_channel();
-                tasks.spawn(run_pair(
+                tokio::spawn(run_pair(
                     config.clone(), p.clone(), Arc::clone(b), rx, Arc::clone(r_tb), Arc::clone(w_tb),
                     lat_tx.clone()
                 ));
@@ -205,7 +204,6 @@ pub(super) async fn run_connection(
             }
         ))
     );
-
     while let Some(msg) = client.next().await {
         let msg = msg?;
         
