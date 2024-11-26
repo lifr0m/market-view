@@ -1,4 +1,4 @@
-use arbitrage::{exchanges, Book, Exchange, Pair, Place, Platform};
+use market_view::{exchanges, Book, Exchange, Pair, Place, Platform};
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -27,8 +27,8 @@ fn print_best_orders(books: HashMap<&Place, HashMap<&Pair, Book>>) {
 async fn main() {
     println!("You can check it here: https://www.binance.com/en/trade/BTC_USDT?type=spot");
 
-    let books = arbitrage::start(vec![
-        arbitrage::Config::new(
+    let books = market_view::start(vec![
+        market_view::Config::new(
             (Exchange::Binance, Platform::Spot),
             100,
             exchanges::binance::spot::get_pairs().await.unwrap()
@@ -36,7 +36,7 @@ async fn main() {
     ]);
 
     loop {
-        print_best_orders(arbitrage::copy_books(&books));
+        print_best_orders(market_view::copy_books(&books));
         tokio::time::sleep(PRINT_INTERVAL).await;
     }
 }
