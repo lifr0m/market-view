@@ -30,3 +30,28 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        let map = HashMap::from([
+            (1, 2),
+            (3, 4),
+            (5, 6),
+        ]);
+        let mut test_map = map.clone();
+        let mut chunks = HashMapChunks::new(map, 2);
+        
+        for len in [2, 1] {
+            let chunk = chunks.next().unwrap();
+            assert_eq!(chunk.len(), len);
+            for key in chunk.into_keys() {
+                test_map.remove(&key).unwrap();
+            }
+        }
+        assert_eq!(chunks.next(), None);
+    }
+}

@@ -22,12 +22,12 @@ pub(super) async fn get_snapshot(
     let weight =
         if size <= 100 { 5 }
         else if size <= 500 { 25 }
-        else if size <= 1000 { 50 }
+        else if size <= 1_000 { 50 }
         else { 250 };
 
     r_tb.acquire(1).await;
     w_tb.acquire(weight).await;
-    
+
     reqwest::Client::new()
         .get("https://data-api.binance.vision/api/v3/depth")
         .query(&json!({

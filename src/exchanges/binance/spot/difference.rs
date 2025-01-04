@@ -123,7 +123,7 @@ async fn run_pair(
             book.asks.shot_update(orders);
         }
 
-        let mut prev_u: u64;
+        let mut prev_u;
 
         loop {
             match rx.recv().await {

@@ -1,6 +1,6 @@
 use rust_decimal::Decimal;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Order {
     pub price: Decimal,
     pub size: Decimal,
@@ -85,5 +85,30 @@ impl Book {
 
     pub fn capacity(&self) -> usize {
         self.bids.cap
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rust_decimal_macros::dec;
+
+    #[test]
+    fn it_works() {
+        let mut side = Side::<false>::new(3);
+        
+        let order0_5 = Order { price: dec!(0.5), size: dec!(43.94) };
+        let order1 = Order { price: dec!(1.0), size: dec!(11.04) };
+        let order1_5 = Order { price: dec!(1.5), size: dec!(98.5) };
+        let order2 = Order { price: dec!(2.0), size: dec!(52.3) };
+        let order2_5 = Order { price: dec!(2.5), size: dec!(44.0) };
+        
+        side.diff_update(order2.clone());
+        side.diff_update(order1.clone());
+        side.diff_update(order0_5.clone());
+        side.diff_update(order2_5.clone());
+        side.diff_update(order1_5.clone());
+        
+        assert_eq!(*side.orders(), vec![order0_5, order1, order1_5]);
     }
 }

@@ -21,3 +21,17 @@ impl std::fmt::Display for Pair {
         write!(f, "{}/{}", self.ba.to_uppercase(), self.qa.to_uppercase())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        let pair = Pair { ba: String::from("btc"), qa: String::from("usdt") };
+
+        assert_eq!(pair.fused(), "btcusdt");
+        assert_eq!(pair.fused_upper(), "BTCUSDT");
+        assert_eq!(format!("{pair}"), "BTC/USDT");
+    }
+}
