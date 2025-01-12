@@ -36,7 +36,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
+    fn hashmap_chunks() {
         let map = HashMap::from([
             (1, 2),
             (3, 4),

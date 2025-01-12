@@ -94,7 +94,7 @@ mod tests {
     use rust_decimal_macros::dec;
 
     #[test]
-    fn it_works() {
+    fn side() {
         let mut side = Side::<false>::new(3);
         
         let order0_5 = Order { price: dec!(0.5), size: dec!(43.94) };

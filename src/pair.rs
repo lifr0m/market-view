@@ -27,7 +27,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
+    fn pair() {
         let pair = Pair { ba: String::from("btc"), qa: String::from("usdt") };
 
         assert_eq!(pair.fused(), "btcusdt");

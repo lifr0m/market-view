@@ -12,7 +12,7 @@ pub(super) struct Snapshot {
     pub(super) asks: Vec<Update>,
 }
 
-/// https://developers.binance.com/docs/binance-spot-api-docs/rest-api/public-api-endpoints#order-book
+/// <https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#order-book>
 pub(super) async fn get_snapshot(
     pair: &Pair,
     size: usize,

@@ -55,7 +55,7 @@ fn apply_event(book: &Arc<Mutex<Book>>, event: EventPayload) {
     }
 }
 
-/// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#how-to-manage-a-local-order-book-correctly
+/// <https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#how-to-manage-a-local-order-book-correctly>
 ///
 /// ### Snapshot and Event Flow
 ///
@@ -172,8 +172,8 @@ async fn run_pair(
     }
 }
 
-/// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams \
-/// https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#diff-depth-stream
+/// <https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams> \
+/// <https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams#diff-depth-stream>
 pub(super) async fn run_connection(
     config: &SystemConfig,
     books: &HashMap<Pair, Arc<Mutex<Book>>>,

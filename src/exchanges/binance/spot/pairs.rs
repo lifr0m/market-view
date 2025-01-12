@@ -15,7 +15,7 @@ struct Symbol {
     quoteAsset: String,
 }
 
-/// https://developers.binance.com/docs/binance-spot-api-docs/rest-api/public-api-endpoints#exchange-information
+/// <https://developers.binance.com/docs/binance-spot-api-docs/rest-api/general-endpoints#exchange-information>
 pub async fn get_pairs() -> reqwest::Result<Vec<Pair>> {
     let exchange_info = reqwest::Client::new()
         .get("https://data-api.binance.vision/api/v3/exchangeInfo")
