@@ -1,9 +1,10 @@
 [package]
 name = "market-view"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Market analyzing instrument. Correctly manages local orderbook using websockets depth updates."
 license = "MIT"
+repository = "https://github.com/lifr0m/market-view"
 
 [dependencies]
 rust_decimal = "1.36.0"
