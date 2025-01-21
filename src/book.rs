@@ -14,8 +14,8 @@ pub struct Side<const REV: bool> {
 
 #[derive(Debug, Clone)]
 pub struct Book {
-    pub bids: Side<true>,
-    pub asks: Side<false>,
+    pub(crate) bids: Side<true>,
+    pub(crate) asks: Side<false>,
 }
 
 impl<const REV: bool> Side<REV> {
@@ -24,10 +24,6 @@ impl<const REV: bool> Side<REV> {
             vec: Vec::with_capacity(cap),
             cap,
         }
-    }
-    
-    pub fn orders(&self) -> &Vec<Order> {
-        &self.vec
     }
 
     pub(crate) fn shot_update(&mut self, orders: Vec<Order>) {
@@ -86,6 +82,14 @@ impl Book {
     pub fn capacity(&self) -> usize {
         self.bids.cap
     }
+    
+    pub fn bids(&self) -> &Vec<Order> {
+        &self.bids.vec
+    }
+    
+    pub fn asks(&self) -> &Vec<Order> {
+        &self.asks.vec
+    }
 }
 
 #[cfg(test)]
@@ -108,7 +112,7 @@ mod tests {
         side.diff_update(order0_5.clone());
         side.diff_update(order2_5.clone());
         side.diff_update(order1_5.clone());
-        
-        assert_eq!(*side.orders(), vec![order0_5, order1, order1_5]);
+
+        assert_eq!(side.vec, vec![order0_5, order1, order1_5]);
     }
 }

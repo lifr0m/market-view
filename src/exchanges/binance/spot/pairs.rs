@@ -30,9 +30,9 @@ pub async fn get_pairs() -> reqwest::Result<Vec<Pair>> {
 
     Ok(exchange_info.symbols
         .into_iter()
-        .map(|s| Pair {
-            ba: s.baseAsset.to_lowercase(),
-            qa: s.quoteAsset.to_lowercase(),
-        })
+        .map(|s| Pair::new(
+            s.baseAsset.to_lowercase(),
+            s.quoteAsset.to_lowercase(),
+        ))
         .collect())
 }

@@ -1,6 +1,6 @@
 [package]
 name = "market-view"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 description = "Market analyzing instrument. Correctly manages local orderbook using websockets depth updates."
 license = "MIT"
@@ -10,7 +10,7 @@ repository = "https://github.com/lifr0m/market-view"
 rust_decimal = "1.36.0"
 rust_decimal_macros = "1.36.0"
 serde = { version = "1.0.217", features = ["derive"] }
-serde_json = "1.0.135"
+serde_json = "1.0.137"
 futures = "0.3.31"
 tokio = { version = "1.43.0", features = ["full"] }
 http = "1.2.0"

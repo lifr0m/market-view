@@ -7,6 +7,10 @@ pub struct Pair {
 }
 
 impl Pair {
+    pub fn new(ba: String, qa: String) -> Self {
+        Self { ba, qa }
+    }
+    
     pub fn fused(&self) -> String {
         format!("{}{}", self.ba, self.qa)
     }
@@ -28,7 +32,7 @@ mod tests {
 
     #[test]
     fn pair() {
-        let pair = Pair { ba: String::from("btc"), qa: String::from("usdt") };
+        let pair = Pair::new(String::from("btc"), String::from("usdt"));
 
         assert_eq!(pair.fused(), "btcusdt");
         assert_eq!(pair.fused_upper(), "BTCUSDT");
