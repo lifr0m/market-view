@@ -36,8 +36,8 @@ async fn loop_connection(
 ) {
     loop {
         match difference::run_connection(&config, &books, &r_tb, &w_tb, &lat_tx).await {
-            Ok(()) => println!("{} ({id}): restarting", config.log_prefix),
-            Err(err) => eprintln!("{} ({id}): {err:?}", config.log_prefix),
+            Ok(()) => log::info!("{} connection {id}: restarting", config.log_prefix),
+            Err(err) => log::error!("{} connection {id}: {err:?}", config.log_prefix),
         };
         tokio::time::sleep(config.reconnect_delay).await;
     }

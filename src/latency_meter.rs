@@ -35,8 +35,8 @@ impl LatencyMeter {
 
                         if !vec.is_empty() {
                             let mean = vec.iter().sum::<Duration>() / vec.len() as u32;
-                            eprintln!("{prefix}: high latency - {mean:?} ({} events)", vec.len());
-
+                            log::warning!("{prefix} high latency - {mean:?} ({} events)", vec.len());
+                            
                             vec.clear();
                         }
                     }

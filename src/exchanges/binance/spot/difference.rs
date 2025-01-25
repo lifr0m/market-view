@@ -39,7 +39,7 @@ fn check_latency(
             tx.send(latency).unwrap();
         }
         Err(err) => if err.duration() > config.max_latency_error {
-            eprintln!("{} [{pair}]: latency error - {:?}", config.log_prefix, err.duration());
+            log::warning!("{} [{pair}]: latency error - {:?}", config.log_prefix, err.duration());
         }
     }
 }
@@ -134,9 +134,9 @@ async fn run_pair(
                     }
                     if event.U > snapshot.lastUpdateId + 1 {
                         // We missed some event.
-                        eprintln!(
+                        log::error!(
                             "{} [{pair}]: U ({}) > lastUpdateId ({}) + 1",
-                            config.log_prefix, event.U, snapshot.lastUpdateId
+                            config.log_prefix, event.U, snapshot.lastUpdateId,
                         );
                         continue 'from_snapshot;
                     }
@@ -146,7 +146,7 @@ async fn run_pair(
                     apply_event(&book, event);
                     break;
                 }
-                None => break 'from_snapshot
+                None => break 'from_snapshot,
             }
         }
 
@@ -155,9 +155,9 @@ async fn run_pair(
                 Some(event) => {
                     if event.U != prev_u + 1 {
                         // We missed some event.
-                        eprintln!(
+                        log::error!(
                             "{} [{pair}]: U ({}) != prev_u ({prev_u}) + 1",
-                            config.log_prefix, event.U
+                            config.log_prefix, event.U,
                         );
                         continue 'from_snapshot;
                     }
@@ -166,7 +166,7 @@ async fn run_pair(
                     check_latency(&config, &pair, &event, &lat_tx);
                     apply_event(&book, event);
                 }
-                None => break 'from_snapshot
+                None => break 'from_snapshot,
             }
         }
     }

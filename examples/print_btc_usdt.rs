@@ -10,19 +10,15 @@ fn print_best_orders(books: HashMap<&Place, HashMap<&Pair, Book>>) {
     let book = &books[&place][&pair];
 
     if book.bids().is_empty() || book.asks().is_empty() {
-        println!("Starting, wait please...");
+        log::info!("Starting, please wait...");
     } else {
-        println!(
-            "[{pair}] Best bid: {:?} Best ask: {:?}",
-            book.bids()[0],
-            book.asks()[0]
-        );
+        log::info!("[{pair}] best bid: {:?} best ask: {:?}", book.bids()[0], book.asks()[0]);
     }
 }
 
 #[tokio::main]
 async fn main() {
-    println!("You can check it here: https://www.binance.com/en/trade/BTC_USDT?type=spot");
+    log::info!("You can check it here: https://www.binance.com/en/trade/BTC_USDT?type=spot");
 
     let books = market_view::start(vec![
         market_view::Config::new(
