@@ -1,4 +1,4 @@
-use market_view::{exchanges, Book, Exchange, Pair, Place, Platform};
+use market_view::{Book, Exchange, Pair, Place, Platform};
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -24,8 +24,8 @@ async fn main() {
         market_view::Config::new(
             (Exchange::Binance, Platform::Spot),
             100,
-            // vec![Pair::new(String::from("btc"), String::from("usdt"))],
-            exchanges::binance::spot::get_pairs().await.unwrap(),
+            vec![Pair::new(String::from("btc"), String::from("usdt"))],
+            // exchanges::binance::spot::get_pairs().await.unwrap(),
         )
     ]);
 
