@@ -17,10 +17,10 @@ use tokio::sync::mpsc;
 struct Update(Decimal, Decimal);
 
 impl From<Update> for Order {
-    fn from(value: Update) -> Self {
-        Order {
-            price: value.0,
-            size: value.1,
+    fn from(update: Update) -> Self {
+        Self {
+            price: update.0,
+            size: update.1,
         }
     }
 }

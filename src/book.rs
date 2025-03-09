@@ -1,6 +1,6 @@
 use rust_decimal::Decimal;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Order {
     pub price: Decimal,
     pub size: Decimal,
@@ -33,13 +33,13 @@ impl<const REV: bool> Side<REV> {
     pub(crate) fn diff_update(&mut self, order: Order) {
         if order.size == Decimal::ZERO {
             // Remove existing order.
-            if let Ok(idx) = self.search(&order) {
+            if let Ok(idx) = self.search(order) {
                 // Found order with target price.
                 self.vec.remove(idx);
             } // It's ok if such order is not found.
         } else {
             // Insert new order or update existing.
-            match self.search(&order) {
+            match self.search(order) {
                 Ok(idx) => {
                     // Update existing order.
                     self.vec[idx].size = order.size;
@@ -62,11 +62,11 @@ impl<const REV: bool> Side<REV> {
         }
     }
 
-    fn search(&self, order: &Order) -> Result<usize, usize> {
+    fn search(&self, order: Order) -> Result<usize, usize> {
         if REV {
-            self.vec.binary_search_by(|o| order.price.cmp(&o.price))
+            self.vec.binary_search_by(|&o| order.price.cmp(&o.price))
         } else {
-            self.vec.binary_search_by(|o| o.price.cmp(&order.price))
+            self.vec.binary_search_by(|&o| o.price.cmp(&order.price))
         }
     }
 }
@@ -107,11 +107,11 @@ mod tests {
         let order2 = Order { price: dec!(2.0), size: dec!(52.3) };
         let order2_5 = Order { price: dec!(2.5), size: dec!(44.0) };
         
-        side.diff_update(order2.clone());
-        side.diff_update(order1.clone());
-        side.diff_update(order0_5.clone());
-        side.diff_update(order2_5.clone());
-        side.diff_update(order1_5.clone());
+        side.diff_update(order2);
+        side.diff_update(order1);
+        side.diff_update(order0_5);
+        side.diff_update(order2_5);
+        side.diff_update(order1_5);
 
         assert_eq!(side.vec, vec![order0_5, order1, order1_5]);
     }
